@@ -1,2 +1,2 @@
 # DecisionTreeTool
-A tool for creating decision tree tools in Unity.
+A tool for creating decision trees in Unity.
