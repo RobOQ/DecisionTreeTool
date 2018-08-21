@@ -8,6 +8,9 @@ public class DecisionTreeTool : EditorWindow
 	List<NodeGraphElement> elements;
 	GUIStyle defaultStyle;
 
+	Vector2 offset;
+	Vector2 drag;
+
 	[MenuItem("Window/Decision Tree Tool")]
 	static void OpenWindow()
 	{
@@ -24,6 +27,9 @@ public class DecisionTreeTool : EditorWindow
 
 	void OnGUI()
 	{
+		DrawGrid(20f, 0.2f, Color.gray);
+		DrawGrid(100f, 0.4f, Color.gray);
+
 		Draw();
 		ProcessEvents(Event.current);
 
@@ -31,6 +37,31 @@ public class DecisionTreeTool : EditorWindow
 		{
 			Repaint();
 		}
+	}
+
+	void DrawGrid(float gridSpacing, float gridOpacity, Color gridColour)
+	{
+		int numAcross = Mathf.CeilToInt(position.width / gridSpacing);
+		int numDown = Mathf.CeilToInt(position.width / gridSpacing);
+
+		Handles.BeginGUI();
+		Handles.color = new Color(gridColour.r, gridColour.g, gridColour.b, gridOpacity);
+
+		offset += drag * 0.5f;
+		Vector3 newOffset = new Vector3(offset.x % gridSpacing, offset.y % gridSpacing, 0);
+
+		for(int i = 0; i < numAcross; ++i)
+		{
+			Handles.DrawLine(new Vector3(gridSpacing * i, -gridSpacing, 0) + newOffset, new Vector3(gridSpacing * i, position.height, 0f) + newOffset);
+		}
+
+		for(int i = 0; i < numDown; ++i)
+		{
+			Handles.DrawLine(new Vector3(-gridSpacing, gridSpacing * i, 0) + newOffset, new Vector3(position.width, gridSpacing * i, 0f) + newOffset);
+		}
+
+		Handles.color = Color.white;
+		Handles.EndGUI();
 	}
 
 	void Draw()
@@ -46,6 +77,8 @@ public class DecisionTreeTool : EditorWindow
 
 	void ProcessEvents(Event e)
 	{
+		drag = Vector2.zero;
+
 		switch(e.type)
 		{
 			case EventType.MouseDown:
