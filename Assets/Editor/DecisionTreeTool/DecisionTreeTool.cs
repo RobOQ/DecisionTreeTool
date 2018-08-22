@@ -5,11 +5,19 @@ using System;
 
 public class DecisionTreeTool : EditorWindow
 {
+	const float ZoomRate = (1.0f / 30.0f);
+	const float MinZoom = 0.5f;
+	const float MaxZoom = 2.0f;
+
+	const float DefaultSimpleNodeWidth = 200.0f;
+	const float DefaultSimpleNodeHeight = 50.0f;
+
 	List<NodeGraphElement> elements;
 	GUIStyle defaultStyle;
 
 	Vector2 offset;
 	Vector2 drag;
+	float zoomLevel;
 
 	[MenuItem("Window/Decision Tree Tool")]
 	static void OpenWindow()
@@ -20,6 +28,7 @@ public class DecisionTreeTool : EditorWindow
 
 	private void OnEnable()
 	{
+		zoomLevel = 1.0f;
 		defaultStyle = new GUIStyle();
 		defaultStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
 		defaultStyle.border = new RectOffset(12, 12, 12, 12);
@@ -27,10 +36,13 @@ public class DecisionTreeTool : EditorWindow
 
 	void OnGUI()
 	{
+		GUI.Label(new Rect(0.0f, 0.0f, 150.0f, 30.0f), "Zoom Level: " + (zoomLevel * 100.0f) + "%");
+
 		DrawGrid(20f, 0.2f, Color.gray);
 		DrawGrid(100f, 0.4f, Color.gray);
 
 		Draw();
+		ProcessElementEvents(Event.current);
 		ProcessEvents(Event.current);
 
 		if (GUI.changed)
@@ -41,12 +53,19 @@ public class DecisionTreeTool : EditorWindow
 
 	void DrawGrid(float gridSpacing, float gridOpacity, Color gridColour)
 	{
+		gridSpacing *= zoomLevel;
+
 		int numAcross = Mathf.CeilToInt(position.width / gridSpacing);
 		int numDown = Mathf.CeilToInt(position.width / gridSpacing);
 
 		Handles.BeginGUI();
 		Handles.color = new Color(gridColour.r, gridColour.g, gridColour.b, gridOpacity);
 
+		// We're not accounting for zoom properly in this logic.
+		// It always keeps the grid coordinate at 0,0 steady as we zoom in and out.
+		// Ideally we'd keep either the centre of our current window view steady, or we'd
+		// keep the coordinate under our mouse cursor steady.
+		// TODO: Fix the zoom logic so it zooms in and out smoothly.
 		offset += drag * 0.5f;
 		Vector3 newOffset = new Vector3(offset.x % gridSpacing, offset.y % gridSpacing, 0);
 
@@ -82,14 +101,76 @@ public class DecisionTreeTool : EditorWindow
 		switch(e.type)
 		{
 			case EventType.MouseDown:
-				if(e.button == 1)
 				{
-					ProcessContextMenu(e.mousePosition);
+					if (e.button == 1)
+					{
+						ProcessContextMenu(e.mousePosition);
+					}
+					break;
 				}
-				break;
+			case EventType.MouseDrag:
+				{
+					if(e.button == 0)
+					{
+						OnDrag(e.delta);
+					}
+					break;
+				}
+			case EventType.ScrollWheel:
+				{
+					OnZoom(e.delta);
+
+					break;
+				}
 			default:
 				break;
 		}
+	}
+
+	void ProcessElementEvents(Event e)
+	{
+		if(elements != null)
+		{
+			for(int i = elements.Count - 1; i >= 0; --i)
+			{
+				bool guiChanged = elements[i].ProcessEvents(e);
+
+				if(guiChanged)
+				{
+					GUI.changed = true;
+				}
+			}
+		}
+	}
+
+	void OnDrag(Vector2 delta)
+	{
+		drag = delta;
+
+		if(elements != null)
+		{
+			for(int i = 0; i < elements.Count; ++i)
+			{
+				elements[i].Drag(delta);
+			}
+		}
+
+		GUI.changed = true;
+	}
+
+	void OnZoom(Vector2 delta)
+	{
+		zoomLevel = Mathf.Clamp(zoomLevel - (ZoomRate * delta.y), MinZoom, MaxZoom);
+
+		if (elements != null)
+		{
+			for (int i = 0; i < elements.Count; ++i)
+			{
+				elements[i].ScaleFactor = zoomLevel;
+			}
+		}
+
+		GUI.changed = true;
 	}
 
 	void ProcessContextMenu(Vector2 mousePosition)
@@ -106,6 +187,6 @@ public class DecisionTreeTool : EditorWindow
 			elements = new List<NodeGraphElement>();
 		}
 
-		elements.Add(new SimpleNode(mousePosition, 200, 50, defaultStyle));
+		elements.Add(new SimpleNode(mousePosition, DefaultSimpleNodeWidth, DefaultSimpleNodeHeight, defaultStyle));
 	}
 }
