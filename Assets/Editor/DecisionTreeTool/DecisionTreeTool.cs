@@ -36,7 +36,10 @@ public class DecisionTreeTool : EditorWindow
 
 	void OnGUI()
 	{
-		GUI.Label(new Rect(0.0f, 0.0f, 150.0f, 30.0f), "Zoom Level: " + (zoomLevel * 100.0f) + "%");
+		GUI.Label(new Rect(0.0f, 0.0f, 150.0f, 20.0f), "Zoom Level: " + (zoomLevel * 100.0f) + "%");
+		GUI.Label(new Rect(0.0f, 15.0f, 150.0f, 20.0f), "drag: " + drag.ToString("F4"));
+		GUI.Label(new Rect(0.0f, 30.0f, 200.0f, 20.0f), "offset: " + offset.ToString("F4"));
+		GUI.Label(new Rect(0.0f, 45.0f, 200.0f, 20.0f), "mousePos: " + Event.current.mousePosition.ToString("F4"));
 
 		DrawGrid(20f, 0.2f, Color.gray);
 		DrawGrid(100f, 0.4f, Color.gray);
