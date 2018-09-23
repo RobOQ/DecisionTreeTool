@@ -88,7 +88,13 @@ public class DecisionTreeTool : EditorWindow
 
 	void Draw()
 	{
-		if(elements != null)
+		Rect scaledRect = new Rect(0, 0, 10, 10);
+		scaledRect.width *= zoomLevel;
+		scaledRect.height *= zoomLevel;
+		scaledRect.position = offset;
+		GUI.Box(scaledRect, "");
+
+		if (elements != null)
 		{
 			foreach(var element in elements)
 			{
