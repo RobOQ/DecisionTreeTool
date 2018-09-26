@@ -2,44 +2,46 @@ using UnityEngine;
 
 public class SimpleNode : NodeGraphElement
 {
-	public Rect rect;
+	Vector2 position;
+	float width;
+	float height;
 	public string title;
 
 	public GUIStyle style;
 
-	public SimpleNode(Vector2 position, float width, float height, GUIStyle nodeStyle)
+	public SimpleNode(Vector2 pos, float w, float h, Vector2 offset, float scaleFactor, GUIStyle nodeStyle)
 	{
-		rect = new Rect(position.x, position.y, width, height);
+		position.x = pos.x;
+		position.y = pos.y;
+		width = w;
+		height = h;
 		style = nodeStyle;
-		ScaleFactor = 1.0f;
+		ScaleFactor = scaleFactor;
+		Offset = offset;
 	}
 
 	public override void Drag(Vector2 delta)
 	{
-		// Changing the position "raw" like this will make zooming tricky.
-		// Maybe better to store a "logical" position and a screen position?
-		rect.position += delta;
+		position += (delta * (1.0f / ScaleFactor));
 	}
 
 	public override void Draw()
 	{
-		// This simple scaling is not *quite* right.
-		// It scales the size correctly, but not the position.
-		// A more correct zoom will keep the rect's position steady relative to the "background".
-		// In other words, some rectangles should (be able to) disappear off the screen when zooming in,
-		// and should reappear when zooming out.
-		// TODO: Fix this logic so zooming in and out works correctly.
-		Rect scaledRect = new Rect(rect);
-		scaledRect.width *= ScaleFactor;
-		scaledRect.height *= ScaleFactor;
+		float scaledWidth = width * ScaleFactor;
+		float scaledHeight = height * ScaleFactor;
+		Vector2 draggedPosition = (position * ScaleFactor) + Offset;
+
+		Rect scaledRect = new Rect(draggedPosition.x, draggedPosition.y, scaledWidth, scaledHeight);
 		GUI.Box(scaledRect, title, style);
 	}
 
 	public override bool ProcessEvents(Event e)
 	{
-		Rect scaledRect = new Rect(rect);
-		scaledRect.width *= ScaleFactor;
-		scaledRect.height *= ScaleFactor;
+		float scaledWidth = width * ScaleFactor;
+		float scaledHeight = height * ScaleFactor;
+		Vector2 draggedPosition = (position * ScaleFactor) + Offset;
+
+		Rect scaledRect = new Rect(draggedPosition.x, draggedPosition.y, scaledWidth, scaledHeight);
 
 		switch (e.type)
 		{

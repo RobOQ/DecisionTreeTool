@@ -1,7 +1,6 @@
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
-using System;
 
 public class DecisionTreeTool : EditorWindow
 {
@@ -58,28 +57,33 @@ public class DecisionTreeTool : EditorWindow
 	{
 		gridSpacing *= zoomLevel;
 
-		int numAcross = Mathf.CeilToInt(position.width / gridSpacing);
-		int numDown = Mathf.CeilToInt(position.width / gridSpacing);
+		int numAcross = Mathf.CeilToInt(position.width / gridSpacing) + 1;
+		int numDown = Mathf.CeilToInt(position.height / gridSpacing) + 1;
 
 		Handles.BeginGUI();
 		Handles.color = new Color(gridColour.r, gridColour.g, gridColour.b, gridOpacity);
 
-		// We're not accounting for zoom properly in this logic.
-		// It always keeps the grid coordinate at 0,0 steady as we zoom in and out.
-		// Ideally we'd keep either the centre of our current window view steady, or we'd
-		// keep the coordinate under our mouse cursor steady.
-		// TODO: Fix the zoom logic so it zooms in and out smoothly.
 		offset += drag * 0.5f;
 		Vector3 newOffset = new Vector3(offset.x % gridSpacing, offset.y % gridSpacing, 0);
 
 		for(int i = 0; i < numAcross; ++i)
 		{
-			Handles.DrawLine(new Vector3(gridSpacing * i, -gridSpacing, 0) + newOffset, new Vector3(gridSpacing * i, position.height, 0f) + newOffset);
+			Vector3 startPoint = new Vector3(gridSpacing * i, -gridSpacing, 0);
+			Vector3 offsetStartPoint = startPoint + newOffset;
+			Vector3 endPoint = new Vector3(gridSpacing * i, position.height + gridSpacing, 0f);
+			Vector3 offsetEndPoint = endPoint + newOffset;
+
+			Handles.DrawLine(offsetStartPoint, offsetEndPoint);
 		}
 
 		for(int i = 0; i < numDown; ++i)
 		{
-			Handles.DrawLine(new Vector3(-gridSpacing, gridSpacing * i, 0) + newOffset, new Vector3(position.width, gridSpacing * i, 0f) + newOffset);
+			Vector3 startPoint = new Vector3(-gridSpacing, gridSpacing * i, 0);
+			Vector3 offsetStartPoint = startPoint + newOffset;
+			Vector3 endPoint = new Vector3(position.width + gridSpacing, gridSpacing * i, 0f);
+			Vector3 offsetEndPoint = endPoint + newOffset;
+
+			Handles.DrawLine(offsetStartPoint, offsetEndPoint);
 		}
 
 		Handles.color = Color.white;
@@ -88,12 +92,6 @@ public class DecisionTreeTool : EditorWindow
 
 	void Draw()
 	{
-		Rect scaledRect = new Rect(0, 0, 10, 10);
-		scaledRect.width *= zoomLevel;
-		scaledRect.height *= zoomLevel;
-		scaledRect.position = offset;
-		GUI.Box(scaledRect, "");
-
 		if (elements != null)
 		{
 			foreach(var element in elements)
@@ -160,7 +158,7 @@ public class DecisionTreeTool : EditorWindow
 		{
 			for(int i = 0; i < elements.Count; ++i)
 			{
-				elements[i].Drag(delta);
+				elements[i].OffsetCanvas(delta);
 			}
 		}
 
@@ -196,6 +194,6 @@ public class DecisionTreeTool : EditorWindow
 			elements = new List<NodeGraphElement>();
 		}
 
-		elements.Add(new SimpleNode(mousePosition, DefaultSimpleNodeWidth, DefaultSimpleNodeHeight, defaultStyle));
+		elements.Add(new SimpleNode(((mousePosition - offset) * (1.0f / zoomLevel)), DefaultSimpleNodeWidth, DefaultSimpleNodeHeight, offset, zoomLevel, defaultStyle));
 	}
 }
