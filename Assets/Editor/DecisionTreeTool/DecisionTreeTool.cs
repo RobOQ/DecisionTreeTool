@@ -24,7 +24,7 @@ public class DecisionTreeTool : EditorWindow
 	List<NodeGraphElement> elements;
 	float zoomLevel = 1.0f;
 	Rect zoomArea;
-    Vector2 zoomCoordsOrigin = Vector2.zero;
+	Vector2 zoomCoordsOrigin = Vector2.zero;
 
 	[MenuItem("Window/Decision Tree Tool")]
 	static void OpenWindow()
@@ -41,29 +41,29 @@ public class DecisionTreeTool : EditorWindow
 	}
 
 	Vector2 ConvertScreenCoordsToZoomCoords(Vector2 screenCoords)
-    {
-        return (screenCoords - zoomArea.TopLeft()) / zoomLevel + zoomCoordsOrigin;
-    }
+	{
+		return (screenCoords - zoomArea.TopLeft()) / zoomLevel + zoomCoordsOrigin;
+	}
 
 	void DrawGraphCanvas()
-    {
-        // Within the zoom area all coordinates are relative to the top left corner of the zoom area
-        // with the width and height being scaled versions of the original/unzoomed area's width and height.
-        EditorZoomArea.Begin(zoomLevel, zoomArea);
- 
+	{
+		// Within the zoom area all coordinates are relative to the top left corner of the zoom area
+		// with the width and height being scaled versions of the original/unzoomed area's width and height.
+		EditorZoomArea.Begin(zoomLevel, zoomArea);
+
 		// Draw grid?
 		// DrawGrid(20f, 0.2f, Color.gray);
 		// DrawGrid(100f, 0.4f, Color.gray);
 
 		DrawElements();
 
-        EditorZoomArea.End();
-    }
- 
-    void DrawSidebar()
-    {
-        GUI.Box(new Rect(0.0f, 0.0f, SidebarWidth, position.height), "Node Info");
-    }
+		EditorZoomArea.End();
+	}
+
+	void DrawSidebar()
+	{
+		GUI.Box(new Rect(0.0f, 0.0f, SidebarWidth, position.height), "Node Info");
+	}
 
 	void OnGUI()
 	{
@@ -128,7 +128,7 @@ public class DecisionTreeTool : EditorWindow
 	{
 		if (elements != null)
 		{
-			foreach(var element in elements)
+			foreach (var element in elements)
 			{
 				element.Draw(zoomCoordsOrigin);
 			}
@@ -137,45 +137,45 @@ public class DecisionTreeTool : EditorWindow
 
 	void ProcessEvents(Event e)
 	{
-		switch(e.type)
+		switch (e.type)
 		{
 			case EventType.MouseDown:
-			{
-				if(e.button == MouseButtons.Right)
 				{
-					// Should this maybe be on MouseUp instead?
-					ProcessContextMenu(e.mousePosition);
+					if (e.button == MouseButtons.Right)
+					{
+						// Should this maybe be on MouseUp instead?
+						ProcessContextMenu(e.mousePosition);
+					}
+					break;
 				}
-				break;
-			}
 			case EventType.MouseDrag:
-			{
-				if(e.button == MouseButtons.Middle)
 				{
-					OnDrag(e.delta);
-					e.Use();
+					if (e.button == MouseButtons.Middle)
+					{
+						OnDrag(e.delta);
+						e.Use();
+					}
+					break;
 				}
-				break;
-			}
 			case EventType.ScrollWheel:
-			{
-				OnZoom(e);
-				e.Use();
-				break;
-			}
+				{
+					OnZoom(e);
+					e.Use();
+					break;
+				}
 
 		}
 	}
 
 	void ProcessElementEvents(Event e)
 	{
-		if(elements != null)
+		if (elements != null)
 		{
-			for(int i = elements.Count - 1; i >= 0; --i)
+			for (int i = elements.Count - 1; i >= 0; --i)
 			{
 				bool guiChanged = elements[i].ProcessEvents(e, zoomArea.position, zoomLevel, zoomCoordsOrigin);
 
-				if(guiChanged)
+				if (guiChanged)
 				{
 					GUI.changed = true;
 				}
@@ -214,7 +214,7 @@ public class DecisionTreeTool : EditorWindow
 
 	void OnClickAddNode(Vector2 mousePosition)
 	{
-		if(elements == null)
+		if (elements == null)
 		{
 			elements = new List<NodeGraphElement>();
 		}
@@ -224,7 +224,7 @@ public class DecisionTreeTool : EditorWindow
 
 	void OnClickAddZeroNode()
 	{
-		if(elements == null)
+		if (elements == null)
 		{
 			elements = new List<NodeGraphElement>();
 		}
