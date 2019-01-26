@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
  
 // Helper Rect extension methods
-// From http://martinecker.com/martincodes/unity-editor-window-zooming/
+// Based on http://martinecker.com/martincodes/unity-editor-window-zooming/, with some of my own additions.
 public static class RectExtensions
 {
     public static Vector2 TopLeft(this Rect rect)
@@ -40,6 +40,13 @@ public static class RectExtensions
         result.yMax *= scale.y;
         result.x += pivotPoint.x;
         result.y += pivotPoint.y;
+        return result;
+    }
+
+    public static Rect Translate(this Rect rect, Vector2 translation)
+    {
+        Rect result = rect;
+        result.position += translation;
         return result;
     }
 }

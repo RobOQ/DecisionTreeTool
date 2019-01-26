@@ -4,48 +4,82 @@ using System.Collections.Generic;
 
 public class DecisionTreeTool : EditorWindow
 {
-	const float ZoomRate = (1.0f / 30.0f);
-	const float MinZoom = 0.5f;
-	const float MaxZoom = 2.0f;
+	class MouseButtons
+	{
+		// As used in mouse events in Unity GUI code.
+		public static int Left { get; } = 0;
+		public static int Right { get; } = 1;
+		public static int Middle { get; } = 2;
+	}
 
-	const float DefaultSimpleNodeWidth = 200.0f;
-	const float DefaultSimpleNodeHeight = 50.0f;
+	static Vector2 MinWindowSize { get; } = new Vector2(600.0f, 300.0f);
+
+	float ZoomRate { get; } = (1.0f / 30.0f);
+	float MinZoom { get; } = 0.8f;
+	float MaxZoom { get; } = 2.0f;
+	float DefaultSimpleNodeWidth { get; } = 200.0f;
+	float DefaultSimpleNodeHeight { get; } = 50.0f;
+	float SidebarWidth { get; } = 300.0f;
 
 	List<NodeGraphElement> elements;
-	GUIStyle defaultStyle;
-
-	Vector2 offset;
-	Vector2 drag;
-	float zoomLevel;
+	float zoomLevel = 1.0f;
+	Rect zoomArea;
+    Vector2 zoomCoordsOrigin = Vector2.zero;
 
 	[MenuItem("Window/Decision Tree Tool")]
 	static void OpenWindow()
 	{
 		DecisionTreeTool dtt = GetWindow<DecisionTreeTool>();
+		dtt.minSize = MinWindowSize;
 		dtt.titleContent = new UnityEngine.GUIContent("Decision Tree Tool");
 	}
 
-	private void OnEnable()
+	void OnEnable()
 	{
 		zoomLevel = 1.0f;
-		defaultStyle = new GUIStyle();
-		defaultStyle.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
-		defaultStyle.border = new RectOffset(12, 12, 12, 12);
+		zoomArea = new Rect(SidebarWidth, 0.0f, position.width - SidebarWidth, position.height);
 	}
+
+	Vector2 ConvertScreenCoordsToZoomCoords(Vector2 screenCoords)
+    {
+        return (screenCoords - zoomArea.TopLeft()) / zoomLevel + zoomCoordsOrigin;
+    }
+
+	void DrawGraphCanvas()
+    {
+        // Within the zoom area all coordinates are relative to the top left corner of the zoom area
+        // with the width and height being scaled versions of the original/unzoomed area's width and height.
+        EditorZoomArea.Begin(zoomLevel, zoomArea);
+ 
+		// Draw grid?
+		// DrawGrid(20f, 0.2f, Color.gray);
+		// DrawGrid(100f, 0.4f, Color.gray);
+
+		DrawElements();
+
+        EditorZoomArea.End();
+    }
+ 
+    void DrawSidebar()
+    {
+        GUI.Box(new Rect(0.0f, 0.0f, SidebarWidth, position.height), "Node Info");
+    }
 
 	void OnGUI()
 	{
-		GUI.Label(new Rect(0.0f, 0.0f, 150.0f, 20.0f), "Zoom Level: " + (zoomLevel * 100.0f) + "%");
-		GUI.Label(new Rect(0.0f, 15.0f, 150.0f, 20.0f), "drag: " + drag.ToString("F4"));
-		GUI.Label(new Rect(0.0f, 30.0f, 200.0f, 20.0f), "offset: " + offset.ToString("F4"));
-		GUI.Label(new Rect(0.0f, 45.0f, 200.0f, 20.0f), "mousePos: " + Event.current.mousePosition.ToString("F4"));
+		zoomArea.width = position.width - 300.0f;
+		zoomArea.height = position.height;
 
-		DrawGrid(20f, 0.2f, Color.gray);
-		DrawGrid(100f, 0.4f, Color.gray);
-
-		Draw();
 		ProcessElementEvents(Event.current);
 		ProcessEvents(Event.current);
+
+		DrawGraphCanvas();
+		DrawSidebar();
+
+		GUI.Label(new Rect(0.0f, 30.0f, 300.0f, 20.0f), "ZoomArea: " + zoomArea.x + ", " + zoomArea.y + ", " + zoomArea.width + ", " + zoomArea.height);
+		GUI.Label(new Rect(0.0f, 50.0f, 300.0f, 20.0f), "MousePos: " + Event.current.mousePosition.x + ", " + Event.current.mousePosition.y);
+		GUI.Label(new Rect(0.0f, 70.0f, 300.0f, 20.0f), "ZoomLevel: " + zoomLevel);
+		GUI.Label(new Rect(0.0f, 90.0f, 300.0f, 20.0f), "ZoomCoordsOrigin: " + zoomCoordsOrigin);
 
 		if (GUI.changed)
 		{
@@ -53,84 +87,83 @@ public class DecisionTreeTool : EditorWindow
 		}
 	}
 
-	void DrawGrid(float gridSpacing, float gridOpacity, Color gridColour)
-	{
-		gridSpacing *= zoomLevel;
+	// void DrawGrid(float gridSpacing, float gridOpacity, Color gridColour)
+	// {
+	// 	gridSpacing *= zoomLevel;
 
-		int numAcross = Mathf.CeilToInt(position.width / gridSpacing) + 1;
-		int numDown = Mathf.CeilToInt(position.height / gridSpacing) + 1;
+	// 	int numAcross = Mathf.CeilToInt(position.width / gridSpacing) + 1;
+	// 	int numDown = Mathf.CeilToInt(position.height / gridSpacing) + 1;
 
-		Handles.BeginGUI();
-		Handles.color = new Color(gridColour.r, gridColour.g, gridColour.b, gridOpacity);
+	// 	Handles.BeginGUI();
+	// 	Handles.color = new Color(gridColour.r, gridColour.g, gridColour.b, gridOpacity);
 
-		offset += drag * 0.5f;
-		Vector3 newOffset = new Vector3(offset.x % gridSpacing, offset.y % gridSpacing, 0);
+	// 	offset += drag * 0.5f;
+	// 	Vector3 newOffset = new Vector3(offset.x % gridSpacing, offset.y % gridSpacing, 0);
 
-		for(int i = 0; i < numAcross; ++i)
-		{
-			Vector3 startPoint = new Vector3(gridSpacing * i, -gridSpacing, 0);
-			Vector3 offsetStartPoint = startPoint + newOffset;
-			Vector3 endPoint = new Vector3(gridSpacing * i, position.height + gridSpacing, 0f);
-			Vector3 offsetEndPoint = endPoint + newOffset;
+	// 	for(int i = 0; i < numAcross; ++i)
+	// 	{
+	// 		Vector3 startPoint = new Vector3(gridSpacing * i, -gridSpacing, 0);
+	// 		Vector3 offsetStartPoint = startPoint + newOffset;
+	// 		Vector3 endPoint = new Vector3(gridSpacing * i, position.height + gridSpacing, 0f);
+	// 		Vector3 offsetEndPoint = endPoint + newOffset;
 
-			Handles.DrawLine(offsetStartPoint, offsetEndPoint);
-		}
+	// 		Handles.DrawLine(offsetStartPoint, offsetEndPoint);
+	// 	}
 
-		for(int i = 0; i < numDown; ++i)
-		{
-			Vector3 startPoint = new Vector3(-gridSpacing, gridSpacing * i, 0);
-			Vector3 offsetStartPoint = startPoint + newOffset;
-			Vector3 endPoint = new Vector3(position.width + gridSpacing, gridSpacing * i, 0f);
-			Vector3 offsetEndPoint = endPoint + newOffset;
+	// 	for(int i = 0; i < numDown; ++i)
+	// 	{
+	// 		Vector3 startPoint = new Vector3(-gridSpacing, gridSpacing * i, 0);
+	// 		Vector3 offsetStartPoint = startPoint + newOffset;
+	// 		Vector3 endPoint = new Vector3(position.width + gridSpacing, gridSpacing * i, 0f);
+	// 		Vector3 offsetEndPoint = endPoint + newOffset;
 
-			Handles.DrawLine(offsetStartPoint, offsetEndPoint);
-		}
+	// 		Handles.DrawLine(offsetStartPoint, offsetEndPoint);
+	// 	}
 
-		Handles.color = Color.white;
-		Handles.EndGUI();
-	}
+	// 	Handles.color = Color.white;
+	// 	Handles.EndGUI();
+	// }
 
-	void Draw()
+	void DrawElements()
 	{
 		if (elements != null)
 		{
 			foreach(var element in elements)
 			{
-				element.Draw();
+				element.Draw(zoomCoordsOrigin);
 			}
 		}
 	}
 
 	void ProcessEvents(Event e)
 	{
-		drag = Vector2.zero;
-
 		switch(e.type)
 		{
 			case EventType.MouseDown:
+			{
+				if(e.button == MouseButtons.Right)
 				{
-					if (e.button == 1)
-					{
-						ProcessContextMenu(e.mousePosition);
-					}
-					break;
+					// Should this maybe be on MouseUp instead?
+					ProcessContextMenu(e.mousePosition);
 				}
-			case EventType.MouseDrag:
-				{
-					if(e.button == 0)
-					{
-						OnDrag(e.delta);
-					}
-					break;
-				}
-			case EventType.ScrollWheel:
-				{
-					OnZoom(e.delta);
-
-					break;
-				}
-			default:
 				break;
+			}
+			case EventType.MouseDrag:
+			{
+				if(e.button == MouseButtons.Middle)
+				{
+					OnDrag(e.delta);
+					e.Use();
+				}
+				break;
+			}
+			case EventType.ScrollWheel:
+			{
+				OnZoom(e);
+				e.Use();
+				break;
+			}
+
 		}
 	}
 
@@ -140,7 +173,7 @@ public class DecisionTreeTool : EditorWindow
 		{
 			for(int i = elements.Count - 1; i >= 0; --i)
 			{
-				bool guiChanged = elements[i].ProcessEvents(e);
+				bool guiChanged = elements[i].ProcessEvents(e, zoomArea.position, zoomLevel, zoomCoordsOrigin);
 
 				if(guiChanged)
 				{
@@ -152,30 +185,21 @@ public class DecisionTreeTool : EditorWindow
 
 	void OnDrag(Vector2 delta)
 	{
-		drag = delta;
-
-		if(elements != null)
-		{
-			for(int i = 0; i < elements.Count; ++i)
-			{
-				elements[i].OffsetCanvas(delta);
-			}
-		}
+		delta *= -1.0f;
+		delta /= zoomLevel;
+		zoomCoordsOrigin += delta;
 
 		GUI.changed = true;
 	}
 
-	void OnZoom(Vector2 delta)
+	void OnZoom(Event e)
 	{
+		Vector2 screenCoordsMousePos = e.mousePosition;
+		Vector2 zoomCoordsMousePos = ConvertScreenCoordsToZoomCoords(screenCoordsMousePos);
+		Vector2 delta = e.delta;
+		float oldZoom = zoomLevel;
 		zoomLevel = Mathf.Clamp(zoomLevel - (ZoomRate * delta.y), MinZoom, MaxZoom);
-
-		if (elements != null)
-		{
-			for (int i = 0; i < elements.Count; ++i)
-			{
-				elements[i].ScaleFactor = zoomLevel;
-			}
-		}
+		zoomCoordsOrigin += (zoomCoordsMousePos - zoomCoordsOrigin) - (oldZoom / zoomLevel) * (zoomCoordsMousePos - zoomCoordsOrigin);
 
 		GUI.changed = true;
 	}
@@ -184,6 +208,7 @@ public class DecisionTreeTool : EditorWindow
 	{
 		GenericMenu genericMenu = new GenericMenu();
 		genericMenu.AddItem(new GUIContent("Add Simple Node"), false, () => OnClickAddNode(mousePosition));
+		genericMenu.AddItem(new GUIContent("Add Zero Node"), false, () => OnClickAddZeroNode());
 		genericMenu.ShowAsContext();
 	}
 
@@ -194,6 +219,16 @@ public class DecisionTreeTool : EditorWindow
 			elements = new List<NodeGraphElement>();
 		}
 
-		elements.Add(new SimpleNode(((mousePosition - offset) * (1.0f / zoomLevel)), DefaultSimpleNodeWidth, DefaultSimpleNodeHeight, offset, zoomLevel, defaultStyle));
+		elements.Add(new SimpleNode(ConvertScreenCoordsToZoomCoords(mousePosition), DefaultSimpleNodeWidth, DefaultSimpleNodeHeight));
+	}
+
+	void OnClickAddZeroNode()
+	{
+		if(elements == null)
+		{
+			elements = new List<NodeGraphElement>();
+		}
+
+		elements.Add(new SimpleNode(Vector2.zero, DefaultSimpleNodeWidth, DefaultSimpleNodeHeight));
 	}
 }
