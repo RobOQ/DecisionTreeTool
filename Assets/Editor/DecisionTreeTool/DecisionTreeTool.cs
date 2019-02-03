@@ -52,8 +52,8 @@ public class DecisionTreeTool : EditorWindow
 		EditorZoomArea.Begin(zoomLevel, zoomArea);
 
 		// Draw grid?
-		// DrawGrid(20f, 0.2f, Color.gray);
-		// DrawGrid(100f, 0.4f, Color.gray);
+		DrawGrid(20f, 0.2f, Color.gray);
+		DrawGrid(100f, 0.4f, Color.gray);
 
 		DrawElements();
 
@@ -87,42 +87,36 @@ public class DecisionTreeTool : EditorWindow
 		}
 	}
 
-	// void DrawGrid(float gridSpacing, float gridOpacity, Color gridColour)
-	// {
-	// 	gridSpacing *= zoomLevel;
+	void DrawGrid(float gridSpacing, float gridOpacity, Color gridColour)
+	{
+		Handles.BeginGUI();
+		Handles.color = new Color(gridColour.r, gridColour.g, gridColour.b, gridOpacity);
 
-	// 	int numAcross = Mathf.CeilToInt(position.width / gridSpacing) + 1;
-	// 	int numDown = Mathf.CeilToInt(position.height / gridSpacing) + 1;
+		int numAcross = Mathf.CeilToInt(zoomArea.width / (gridSpacing * zoomLevel)) + 1;
+		float startX = zoomCoordsOrigin.x + (Mathf.Sign(zoomCoordsOrigin.x) * gridSpacing - zoomCoordsOrigin.x % gridSpacing);
 
-	// 	Handles.BeginGUI();
-	// 	Handles.color = new Color(gridColour.r, gridColour.g, gridColour.b, gridOpacity);
+		for (int i = 0; i < numAcross; ++i)
+		{
+			var xVal = startX + gridSpacing * i - zoomCoordsOrigin.x;
+			var startPoint = new Vector3(xVal, zoomArea.y, 0.0f);
+			var endPoint = new Vector3(xVal, zoomArea.y + (zoomArea.height / zoomLevel));
+			Handles.DrawLine(startPoint, endPoint);
+		}
 
-	// 	offset += drag * 0.5f;
-	// 	Vector3 newOffset = new Vector3(offset.x % gridSpacing, offset.y % gridSpacing, 0);
+		int numDown = Mathf.CeilToInt(zoomArea.height / (gridSpacing * zoomLevel)) + 1;
+		float startY = zoomCoordsOrigin.y + (Mathf.Sign(zoomCoordsOrigin.y) * gridSpacing - zoomCoordsOrigin.y % gridSpacing);
 
-	// 	for(int i = 0; i < numAcross; ++i)
-	// 	{
-	// 		Vector3 startPoint = new Vector3(gridSpacing * i, -gridSpacing, 0);
-	// 		Vector3 offsetStartPoint = startPoint + newOffset;
-	// 		Vector3 endPoint = new Vector3(gridSpacing * i, position.height + gridSpacing, 0f);
-	// 		Vector3 offsetEndPoint = endPoint + newOffset;
+		for (int i = 0; i < numDown; ++i)
+		{
+			var yVal = startY + gridSpacing * i - zoomCoordsOrigin.y;
+			var startPoint = new Vector3(zoomArea.x - SidebarWidth, yVal, 0.0f);
+			var endPoint = new Vector3(zoomArea.x - SidebarWidth + (zoomArea.width / zoomLevel), yVal, 0.0f);
+			Handles.DrawLine(startPoint, endPoint);
+		}
 
-	// 		Handles.DrawLine(offsetStartPoint, offsetEndPoint);
-	// 	}
-
-	// 	for(int i = 0; i < numDown; ++i)
-	// 	{
-	// 		Vector3 startPoint = new Vector3(-gridSpacing, gridSpacing * i, 0);
-	// 		Vector3 offsetStartPoint = startPoint + newOffset;
-	// 		Vector3 endPoint = new Vector3(position.width + gridSpacing, gridSpacing * i, 0f);
-	// 		Vector3 offsetEndPoint = endPoint + newOffset;
-
-	// 		Handles.DrawLine(offsetStartPoint, offsetEndPoint);
-	// 	}
-
-	// 	Handles.color = Color.white;
-	// 	Handles.EndGUI();
-	// }
+		Handles.color = Color.white;
+		Handles.EndGUI();
+	}
 
 	void DrawElements()
 	{
